@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 
 import typer
 from rich import print
@@ -10,7 +10,7 @@ err_console = Console(stderr=True)
 @app.command()
 def new(filename: str):
   """
-  Create a text file based on a default template.
+  Create a text file with a default metadate.
   """
 
   title = filename.replace("\"", "\\\"")
@@ -37,9 +37,18 @@ def new(filename: str):
 @app.command()
 def today():
   """
-  Create a text file based on a daily template.
+  Create a text file with today's date.
   """
+
   new(date.today().isoformat() + ".md")
+
+@app.command()
+def tomorrow():
+  """
+  Create a text file with tomorrow's date.
+  """
+
+  new((date.today() + timedelta(1)).isoformat() + ".md")
 
 if __name__ == "__main__":
   app()
