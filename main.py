@@ -72,6 +72,7 @@ def export(input_filepath: str, output_filepath: str):
     raise typer.Exit(code=1)
 
   pandoc_bin = shutil.which("pandoc")
+  typst_bin = shutil.which("typst")
 
   if not pandoc_bin:
     err_console.print(
@@ -81,7 +82,17 @@ def export(input_filepath: str, output_filepath: str):
 
     raise typer.Exit(code=1)
 
+  if output_ext == ".pdf" and not typst_bin:
+    err_console.print(
+      "Typst could not be found. pkm uses typst as pandoc's pdf engine internally to convert files."
+    )
+    err_console.print(f"Please install Typst to proceed.")
+
+    raise typer.Exit(code=1)
+
+
   pkm_dir = os.path.dirname(__file__)
+  cmd = []
 
   if output_ext == ".html":
     cmd = [
@@ -94,24 +105,7 @@ def export(input_filepath: str, output_filepath: str):
       "-s",
       "--embed-resources",
     ]
-
-    print(f"[bold green]>>>[/bold green] {" ".join(cmd)}")
-
-    subprocess.run(
-      cmd,
-      check=True,
-    )
   elif output_ext == ".pdf":
-    typst_bin = shutil.which("typst")
-
-    if not typst_bin:
-      err_console.print(
-        "Typst could not be found. pkm uses typst as pandoc's pdf engine internally to convert files."
-      )
-      err_console.print(f"Please install Typst to proceed.")
-
-      raise typer.Exit(code=1)
-    
     cmd = [
       "pandoc",
       input_filepath,
@@ -121,9 +115,13 @@ def export(input_filepath: str, output_filepath: str):
       output_filepath,
     ]
     
-    subprocess.run(
-      cmd,
-      check=True,
-    )
+  print(f"[bold green]>>>[/bold green] {" ".join(cmd)}")
+
+  subprocess.run(
+    cmd,
+    check=True,
+  )
+
+
 if __name__ == "__main__":
   app()
