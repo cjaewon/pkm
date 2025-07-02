@@ -1,6 +1,8 @@
 import os
 import shutil
 import subprocess
+from pathlib import Path
+from typing import Annotated
 from datetime import datetime, timezone, date, timedelta
 
 import typer
@@ -12,10 +14,26 @@ err_console = Console(stderr=True)
 
 
 @app.command()
-def new(filename: str):
+def new(filename: str, template: Annotated[Path | None, typer.Option("--template", "-t")] = None):
   """
   Create a text file with a default metadate.
   """
+  template_text: str | None = None
+
+  if template is None:
+    pass
+  elif template.is_file():
+    template_text = template.read_text()
+  elif template.is_dir():
+    err_console.print(f'[green]"{template}"[/green] is directory.')
+    raise typer.Exit(code=1)
+  elif not template.exists():
+    err_console.print(f'[green]"{template}"[/green] doesn\'t exist.')
+    raise typer.Exit(code=1)
+
+
+  # template 인자를 통해 전달되었으면 템플릿 파일 읽은 결과를 보장.
+  # 인자를 통해 전달되지 않았으면 None인게 보장.
 
   title = filename.replace('"', '\\"')
 
@@ -31,6 +49,9 @@ def new(filename: str):
       f.write(f'title: "{title}"\n')
       f.write(f"created_at: {created_at}\n")
       f.write("---\n")
+
+      if template_text is not None:
+        f.write(template_text)
 
       # filename에 따옴표가 있을 수 있으므로 rich [green]을 사용함.
       print(f'Created [green]"{filename}"[/green]')
