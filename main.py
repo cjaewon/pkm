@@ -14,7 +14,15 @@ err_console = Console(stderr=True)
 
 
 @app.command()
-def new(filename: str, template: Annotated[Path | None, typer.Option("--template", "-t")] = None):
+def new(
+  filepath: Annotated[Path, typer.Argument()],
+  template: Annotated[
+    Path | None,
+    typer.Option(
+      "--template", "-t", help="A template file that appends to the last line."
+    ),
+  ] = None,
+):
   """
   Create a text file with a default metadate.
   """
@@ -25,17 +33,16 @@ def new(filename: str, template: Annotated[Path | None, typer.Option("--template
   elif template.is_file():
     template_text = template.read_text()
   elif template.is_dir():
-    err_console.print(f'[green]"{template}"[/green] is directory.')
+    err_console.print(f'[green]"{str(template)}"[/green] is directory.')
     raise typer.Exit(code=1)
   elif not template.exists():
-    err_console.print(f'[green]"{template}"[/green] doesn\'t exist.')
+    err_console.print(f'[green]"{str(template)}"[/green] doesn\'t exist.')
     raise typer.Exit(code=1)
-
 
   # template 인자를 통해 전달되었으면 템플릿 파일 읽은 결과를 보장.
   # 인자를 통해 전달되지 않았으면 None인게 보장.
 
-  title = filename.replace('"', '\\"')
+  title = filepath.name.replace('"', '\\"')
 
   # RFC3339
   local_now = datetime.now(timezone.utc).astimezone()
@@ -44,7 +51,7 @@ def new(filename: str, template: Annotated[Path | None, typer.Option("--template
   try:
     # x는 배타적 생성 모드 (Exclusive Creation)
     # 파일이 없는 경우에만 새로 만들고 쓸 수 있음.
-    with open(filename, mode="x", encoding="utf-8") as f:
+    with open(filepath, mode="x", encoding="utf-8") as f:
       f.write("---\n")
       f.write(f'title: "{title}"\n')
       f.write(f"created_at: {created_at}\n")
@@ -54,9 +61,9 @@ def new(filename: str, template: Annotated[Path | None, typer.Option("--template
         f.write(template_text)
 
       # filename에 따옴표가 있을 수 있으므로 rich [green]을 사용함.
-      print(f'Created [green]"{filename}"[/green]')
+      print(f'Created [green]"{str(filepath)}"[/green]')
   except FileExistsError:
-    err_console.print(f'[green]"{filename}"[/green] is already exists.')
+    err_console.print(f'[green]"{str(filepath)}"[/green] is already exists.')
     raise typer.Exit(code=1)
 
 
@@ -66,7 +73,8 @@ def today():
   Create a text file with today's date.
   """
 
-  new(date.today().isoformat() + ".md")
+  path = Path(date.today().isoformat() + ".md")
+  new(path)
 
 
 @app.command()
@@ -75,7 +83,8 @@ def tomorrow():
   Create a text file with tomorrow's date.
   """
 
-  new((date.today() + timedelta(1)).isoformat() + ".md")
+  path = Path((date.today() + timedelta(1)).isoformat() + ".md")
+  new(path)
 
 
 @app.command()
@@ -111,7 +120,6 @@ def export(input_filepath: str, output_filepath: str):
 
     raise typer.Exit(code=1)
 
-
   pkm_dir = os.path.dirname(__file__)
   cmd = []
 
@@ -135,8 +143,8 @@ def export(input_filepath: str, output_filepath: str):
       "-o",
       output_filepath,
     ]
-    
-  print(f"[bold green]>>>[/bold green] {" ".join(cmd)}")
+
+  print(f"[bold green]>>>[/bold green] {' '.join(cmd)}")
 
   subprocess.run(
     cmd,
